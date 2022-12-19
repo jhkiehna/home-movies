@@ -1,8 +1,7 @@
 import Head from 'next/head';
 import { type NextPage } from 'next';
 import { useState, type MouseEvent } from 'react';
-import { S3Client, ListObjectsV2Command, GetObjectCommand, type _Object } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { S3Client, ListObjectsV2Command, type _Object } from '@aws-sdk/client-s3';
 
 import styles from '../index.module.css';
 
@@ -13,10 +12,19 @@ interface MovieObject extends _Object {
 
 const HomeMovies: NextPage<{ movieObjects: MovieObject[] }> = ({ movieObjects }) => {
   const [displayedMovieKey, setDisplayedMovieKey] = useState<string | null>(null);
+  const [displayedMovieUrl, setDisplayedMovieUrl] = useState<string | null>(null);
 
-  const handleMovieClick = async (e: MouseEvent<HTMLAnchorElement, globalThis.MouseEvent>, key: string) => {
+  const handleMovieClick = async (
+    e: MouseEvent<HTMLAnchorElement, globalThis.MouseEvent>,
+    key: string,
+    filename: string,
+  ) => {
     e.preventDefault();
+
+    const responseBody = await (await fetch(`/api/presigned-url?key=${key}&filename=${filename}`)).json();
+
     setDisplayedMovieKey(key);
+    setDisplayedMovieUrl(responseBody.presignedUrl);
   };
 
   return (
@@ -44,7 +52,7 @@ const HomeMovies: NextPage<{ movieObjects: MovieObject[] }> = ({ movieObjects })
                   <h2>{object.FileName}</h2>
 
                   <p>
-                    <a href="" onClick={(e) => handleMovieClick(e, object.Key as string)}>
+                    <a href="" onClick={(e) => handleMovieClick(e, object.Key as string, object.FileName)}>
                       Stream Here
                     </a>
                     {' | '}
@@ -53,9 +61,9 @@ const HomeMovies: NextPage<{ movieObjects: MovieObject[] }> = ({ movieObjects })
                     </a>
                   </p>
 
-                  {displayedMovieKey === object.Key ? (
-                    <video controls={true} className={styles.video} playsInline>
-                      <source src={object.presignedUrl} type="video/mp4"></source>
+                  {displayedMovieKey === object.Key && displayedMovieUrl ? (
+                    <video controls={true} className={styles.video} playsInline autoPlay>
+                      <source src={displayedMovieUrl} type="video/mp4"></source>
                     </video>
                   ) : null}
                 </li>
@@ -86,24 +94,7 @@ export async function getStaticProps() {
 
   if (!compressedMovies) return { props: { movieObjects: [] } };
 
-  const movies = await Promise.all(
-    compressedMovies.map(async (object) => {
-      const FileName = object.Key?.split('/')?.[0];
-
-      const command = new GetObjectCommand({
-        Bucket: AWS_BUCKET_NAME as string,
-        Key: object.Key,
-        ResponseContentDisposition: `attachment;filename=${FileName}`,
-      });
-      const presignedUrl = await getSignedUrl(s3, command, { expiresIn: 60 * 60 * 24 });
-
-      return {
-        ...object,
-        FileName,
-        presignedUrl,
-      };
-    }),
-  );
+  const movies = compressedMovies.map((movie) => ({ ...movie, FileName: movie.Key?.split('/')?.[0] }));
 
   return { props: { movieObjects: JSON.parse(JSON.stringify(movies)) } };
 }
