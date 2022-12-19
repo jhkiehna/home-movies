@@ -1,13 +1,23 @@
-import React from "react";
+import { useState, type MouseEvent } from 'react';
 
-import { S3Client, ListObjectsV2Command, type ListObjectsV2CommandOutput } from "@aws-sdk/client-s3";
-import styles from "./index.module.css";
-import { type NextPage } from "next";
-import Head from "next/head";
+import { S3Client, ListObjectsV2Command, GetObjectCommand, type _Object } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import styles from './index.module.css';
+import { type NextPage } from 'next';
+import Head from 'next/head';
 
-const HomeMovies: NextPage<{bucketContents: ListObjectsV2CommandOutput['Contents']}> = ({bucketContents}) => {
+interface MovieObject extends _Object {
+  Name: string;
+  presignedUrl: string;
+}
 
+const HomeMovies: NextPage<{ movieObjects: MovieObject[] }> = ({ movieObjects }) => {
+  const [displayedMovieKey, setDisplayedMovieKey] = useState<string | null>(null);
 
+  const handleMovieClick = async (e: MouseEvent<HTMLAnchorElement, globalThis.MouseEvent>, key: string) => {
+    e.preventDefault();
+    setDisplayedMovieKey(key);
+  };
 
   return (
     <>
@@ -17,19 +27,40 @@ const HomeMovies: NextPage<{bucketContents: ListObjectsV2CommandOutput['Contents
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <video src="https://t3-stream.s3.amazonaws.com/2021-09-22T21:00:00.000Z.mp4" controls></video>
-
-
       <main className={styles.main}>
         <div className={styles.container}>
-          <h1 className={styles.title}>
-            Home Movies
-          </h1>
+          <h1 className={styles.title}>Home Movies</h1>
 
-          {bucketContents && bucketContents?.length > 0 ? 
-            bucketContents.map((object) => (<div key={object.Key}>{object.Key}</div>)) : 
-            <div>No movies found</div>
-          }
+          <p>
+            Downloading will open a new tab in certain browsers and attempt to play the file. To prevent this, right
+            click the link and select &quot; Save link as...&quot;
+          </p>
+
+          <ul>
+            {movieObjects && movieObjects?.length > 0 ? (
+              movieObjects.map((object) => (
+                <li key={object.Key}>
+                  <h2>{object.Name}</h2>
+
+                  <p>
+                    <a href="" onClick={(e) => handleMovieClick(e, object.Key as string)}>
+                      Stream Here
+                    </a>
+                    {' | '}
+                    <a href={object.presignedUrl} target="_blank" rel="noopener noreferrer" download={object.Name}>
+                      Download
+                    </a>
+                  </p>
+
+                  {displayedMovieKey === object.Key ? (
+                    <video src={object.presignedUrl} controls={true} style={{ maxWidth: '50%' }}></video>
+                  ) : null}
+                </li>
+              ))
+            ) : (
+              <li>No movies found</li>
+            )}
+          </ul>
         </div>
       </main>
     </>
@@ -37,15 +68,35 @@ const HomeMovies: NextPage<{bucketContents: ListObjectsV2CommandOutput['Contents
 };
 
 export async function getStaticProps() {
-  const {AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET_NAME} = process.env;
+  const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET_NAME } = process.env;
 
-  const s3 = new S3Client({ region: "us-east-1", credentials: {accessKeyId: AWS_ACCESS_KEY_ID as string, secretAccessKey: AWS_SECRET_ACCESS_KEY as string} });
+  const s3 = new S3Client({
+    region: 'us-east-1',
+    credentials: { accessKeyId: AWS_ACCESS_KEY_ID as string, secretAccessKey: AWS_SECRET_ACCESS_KEY as string },
+  });
 
-  const result = await s3.send(new ListObjectsV2Command({Bucket: AWS_BUCKET_NAME as string }));
+  const result = await s3.send(new ListObjectsV2Command({ Bucket: AWS_BUCKET_NAME as string }));
 
-  console.log(result)
+  const compressedMovies = result.Contents?.filter(
+    (object) => object.Key?.includes('compressed') && (object.Size ?? 0) > 0,
+  );
 
-  return {props: {bucketContents: JSON.parse(JSON.stringify(result.Contents))}}
+  if (!compressedMovies) return { props: { movieObjects: [] } };
+
+  const movies = await Promise.all(
+    compressedMovies.map(async (object) => {
+      const command = new GetObjectCommand({ Bucket: AWS_BUCKET_NAME as string, Key: object.Key });
+      const presignedUrl = await getSignedUrl(s3, command, { expiresIn: 60 * 60 * 24 });
+
+      return {
+        ...object,
+        Name: object.Key?.split('/')?.[0],
+        presignedUrl,
+      };
+    }),
+  );
+
+  return { props: { movieObjects: JSON.parse(JSON.stringify(movies)) } };
 }
 
 export default HomeMovies;
