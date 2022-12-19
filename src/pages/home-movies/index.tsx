@@ -14,7 +14,7 @@ const HomeMovies: NextPage<{ movieObjects: MovieObject[] }> = ({ movieObjects })
   const [displayedMovieKey, setDisplayedMovieKey] = useState<string | null>(null);
   const [displayedMovieUrl, setDisplayedMovieUrl] = useState<string | null>(null);
 
-  const handleMovieClick = async (
+  const handleStreamClick = async (
     e: MouseEvent<HTMLAnchorElement, globalThis.MouseEvent>,
     key: string,
     filename: string,
@@ -25,6 +25,18 @@ const HomeMovies: NextPage<{ movieObjects: MovieObject[] }> = ({ movieObjects })
 
     setDisplayedMovieKey(key);
     setDisplayedMovieUrl(responseBody.presignedUrl);
+  };
+
+  const handleDownloadClick = async (
+    e: MouseEvent<HTMLAnchorElement, globalThis.MouseEvent>,
+    key: string,
+    filename: string,
+  ) => {
+    e.preventDefault();
+
+    const responseBody = await (await fetch(`/api/presigned-url?key=${key}&filename=${filename}`)).json();
+
+    window.open(responseBody.presignedUrl, '_blank');
   };
 
   return (
@@ -51,15 +63,15 @@ const HomeMovies: NextPage<{ movieObjects: MovieObject[] }> = ({ movieObjects })
                 <li key={object.Key}>
                   <h2>{object.FileName}</h2>
 
-                  <p>
-                    <a href="" onClick={(e) => handleMovieClick(e, object.Key as string, object.FileName)}>
+                  <div className={styles.videolinks}>
+                    <a href="" onClick={(e) => handleStreamClick(e, object.Key as string, object.FileName)}>
                       Stream Here
                     </a>
-                    {' | '}
-                    <a href={object.presignedUrl} rel="noopener noreferrer" download={object.FileName}>
+                    <span>{' | '}</span>
+                    <a href="" onClick={(e) => handleDownloadClick(e, object.Key as string, object.FileName)}>
                       Download
                     </a>
-                  </p>
+                  </div>
 
                   {displayedMovieKey === object.Key && displayedMovieUrl ? (
                     <video controls={true} className={styles.video} playsInline autoPlay>

@@ -38,6 +38,10 @@
   padding: 4rem 1rem;
 }
 
+.videolinks {
+  margin-bottom: 2rem;
+}
+
 @media (min-width: 640px) {
   .container {
     max-width: 640px;
