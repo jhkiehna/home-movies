@@ -54,7 +54,7 @@ const HomeMovies: NextPage<{ movieObjects: MovieObject[] }> = ({ movieObjects })
                   </p>
 
                   {displayedMovieKey === object.Key ? (
-                    <video controls={true} className={styles.video}>
+                    <video controls={true} className={styles.video} muted={false} autoPlay>
                       <source src={object.presignedUrl} type="video/mp4"></source>
                     </video>
                   ) : null}
