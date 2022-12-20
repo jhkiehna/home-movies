@@ -1,8 +1,11 @@
 import Head from 'next/head';
 import { type NextPage } from 'next';
 import { useState, type MouseEvent } from 'react';
+import { withIronSessionSsr } from 'iron-session/next';
 import { S3Client, ListObjectsV2Command, type _Object } from '@aws-sdk/client-s3';
 
+import type { CustomIronSession } from '../../utils/types';
+import sessionOptions from '../../utils/sessionOptions';
 import styles from '../index.module.css';
 
 interface MovieObject extends _Object {
@@ -21,10 +24,14 @@ const HomeMovies: NextPage<{ movieObjects: MovieObject[] }> = ({ movieObjects })
   ) => {
     e.preventDefault();
 
-    const responseBody = await (await fetch(`/api/presigned-url?key=${key}&filename=${filename}`)).json();
+    const response = await fetch(`/api/presigned-url?key=${key}&filename=${filename}`);
+
+    if (response.status === 401) window.location.replace('/login');
+
+    const { presignedUrl } = await response.json();
 
     setDisplayedMovieKey(key);
-    setDisplayedMovieUrl(responseBody.presignedUrl);
+    setDisplayedMovieUrl(presignedUrl);
   };
 
   const handleDownloadClick = async (
@@ -34,9 +41,13 @@ const HomeMovies: NextPage<{ movieObjects: MovieObject[] }> = ({ movieObjects })
   ) => {
     e.preventDefault();
 
-    const responseBody = await (await fetch(`/api/presigned-url?key=${key}&filename=${filename}`)).json();
+    const response = await fetch(`/api/presigned-url?key=${key}&filename=${filename}`);
 
-    window.open(responseBody.presignedUrl, '_blank');
+    if (response.status === 401) window.location.replace('/login');
+
+    const { presignedUrl } = await response.json();
+
+    window.open(presignedUrl, '_blank');
   };
 
   return (
@@ -90,7 +101,20 @@ const HomeMovies: NextPage<{ movieObjects: MovieObject[] }> = ({ movieObjects })
   );
 };
 
-export async function getStaticProps() {
+export default HomeMovies;
+
+export const getServerSideProps = withIronSessionSsr(async function getServerSideProps({ req }) {
+  if (!(req.session as CustomIronSession)?.user?.isLoggedIn) {
+    req.session.destroy();
+
+    return {
+      redirect: {
+        destination: '/login',
+        permanent: false,
+      },
+    };
+  }
+
   const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET_NAME } = process.env;
 
   const s3 = new S3Client({
@@ -109,6 +133,4 @@ export async function getStaticProps() {
   const movies = compressedMovies.map((movie) => ({ ...movie, FileName: movie.Key?.split('/')?.[0] }));
 
   return { props: { movieObjects: JSON.parse(JSON.stringify(movies)) } };
-}
-
-export default HomeMovies;
+}, sessionOptions);

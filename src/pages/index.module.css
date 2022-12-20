@@ -42,6 +42,37 @@
   margin-bottom: 2rem;
 }
 
+.loginform {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.loginform input {
+  margin-bottom: 1rem;
+}
+
+.loginform input[type='text'] {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(280 100% 70%);
+  background-color: rgb(255 255 255 / 0.1);
+  color: white;
+}
+
+.loginform input[type='submit'] {
+  padding: 0.5rem 1rem;
+}
+
+.loginform .errormessage {
+  height: 15px;
+}
+
+.errormessage p {
+  color: red;
+}
+
 @media (min-width: 640px) {
   .container {
     max-width: 640px;
