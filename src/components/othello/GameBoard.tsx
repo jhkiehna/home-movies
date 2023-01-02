@@ -4,27 +4,42 @@ import styles from '../../pages/index.module.css';
 import { findCapturedTokenKeys, findAllPossibleMoves } from '../../utils/game';
 import type { GameState } from '../../utils/game';
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 const GameBoard: React.FC<{
   gameState: GameState;
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
 }> = ({ gameState, setGameState }) => {
   React.useEffect(() => {
     if (gameState.currentTurn !== gameState.playerColor) {
-      setTimeout(() => {
-        const randomKey = gameState.possibleMoves[Math.floor(Math.random() * gameState.possibleMoves.length)] as string;
+      const randomKey = gameState.possibleMoves[Math.floor(Math.random() * gameState.possibleMoves.length)] as string;
 
-        if (!randomKey) return;
+      if (!randomKey) return;
 
-        setMove(randomKey);
-      }, 200);
+      setMove(randomKey);
     }
   }, [gameState.currentTurn]);
 
-  const setMove = (key: string) => {
+  const setMove = async (key: string) => {
     const board = { ...gameState.board, [key]: { occupiedBy: gameState.currentTurn } };
 
+    setGameState({ ...gameState, board });
+
+    await sleep(200);
+
     const tokens = findCapturedTokenKeys(key, gameState);
-    tokens.forEach((key) => (board[key] = { occupiedBy: gameState.currentTurn }));
+
+    for (const key of tokens) {
+      board[key] = { occupiedBy: gameState.currentTurn };
+
+      setGameState({ ...gameState, board });
+
+      await sleep(100);
+    }
+
+    await sleep(500);
 
     let currentTurn: GameState['currentTurn'] = gameState.currentTurn === 'black' ? 'white' : 'black';
 
@@ -44,7 +59,7 @@ const GameBoard: React.FC<{
   };
 
   const handleClick = (key: string) => {
-    if (gameState.possibleMoves.includes(key)) setMove(key);
+    if (gameState.currentTurn === gameState.playerColor && gameState.possibleMoves.includes(key)) setMove(key);
   };
 
   return (
