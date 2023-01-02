@@ -67,12 +67,16 @@ const GameBoard: React.FC<{
       {Array.from(Object.entries(gameState.board)).map(([key, cell]) => {
         const { x, y } = JSON.parse(key);
 
+        const classNames = [styles.othelloboardcell, styles[`position-${x}-${y}`]];
+
+        if (gameState.currentTurn === gameState.playerColor && gameState.possibleMoves.includes(key)) {
+          classNames.push(styles.possibletokenmove);
+        }
+
         return (
           <div
             key={key}
-            className={`${styles.othelloboardcell} ${styles[`position-${x}-${y}`]}${
-              gameState.possibleMoves.includes(key) ? ` ${styles.possibletokenmove}` : ''
-            }`}
+            className={classNames.join(' ')}
             {...(gameState.currentTurn === gameState.playerColor && { onClick: () => handleClick(key) })}
             style={{ gridColumn: x, gridRow: y }}
           >
