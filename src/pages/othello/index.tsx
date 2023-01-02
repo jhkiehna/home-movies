@@ -3,19 +3,21 @@ import Head from 'next/head';
 import { type NextPage } from 'next';
 
 import styles from '../index.module.css';
+import type { GameState } from '../../utils/game';
 import { createInitialState } from '../../utils/game';
 import GameBoard from '../../components/othello/GameBoard';
 import Info from '../../components/othello/Info';
 
 const Othello: NextPage = () => {
-  const [gameState, setGameState] = React.useState(createInitialState());
-  const [hydrated, setHydrated] = React.useState(false);
-
-  console.log(gameState?.possibleMoves);
+  const [gameState, setGameState] = React.useState<GameState | null>(null);
 
   React.useEffect(() => {
-    setHydrated(true);
-  }, []);
+    if (!gameState) {
+      createInitialState().then((gameState) => {
+        setGameState(gameState);
+      });
+    }
+  }, [gameState]);
 
   return (
     <>
@@ -28,11 +30,11 @@ const Othello: NextPage = () => {
       <main className={styles.othellomain}>
         <h1>Othello</h1>
 
-        {hydrated && gameState ? <Info gameState={gameState} /> : null}
+        {gameState ? <Info gameState={gameState} /> : null}
 
-        {hydrated && gameState ? <GameBoard gameState={gameState} setGameState={setGameState} /> : null}
+        {gameState ? <GameBoard gameState={gameState} setGameState={setGameState} /> : null}
 
-        {hydrated && gameState && Object.values(gameState.board).every((cell) => !!cell.occupiedBy) ? (
+        {gameState && Object.values(gameState.board).every((cell) => !!cell.occupiedBy) ? (
           <p>
             {Object.values(gameState.board).filter((cell) => cell.occupiedBy === 'white').length >
             Object.values(gameState.board).filter((cell) => cell.occupiedBy === 'black').length

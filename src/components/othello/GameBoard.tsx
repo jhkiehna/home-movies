@@ -10,7 +10,7 @@ function sleep(ms: number) {
 
 const GameBoard: React.FC<{
   gameState: GameState;
-  setGameState: React.Dispatch<React.SetStateAction<GameState>>;
+  setGameState: React.Dispatch<React.SetStateAction<GameState | null>>;
 }> = ({ gameState, setGameState }) => {
   React.useEffect(() => {
     if (gameState.currentTurn !== gameState.playerColor) {
@@ -29,7 +29,7 @@ const GameBoard: React.FC<{
 
     await sleep(200);
 
-    const tokens = findCapturedTokenKeys(key, gameState);
+    const tokens = await findCapturedTokenKeys(key, gameState);
 
     for (const key of tokens) {
       board[key] = { occupiedBy: gameState.currentTurn };
@@ -43,10 +43,10 @@ const GameBoard: React.FC<{
 
     let currentTurn: GameState['currentTurn'] = gameState.currentTurn === 'black' ? 'white' : 'black';
 
-    let possibleMoves = findAllPossibleMoves(currentTurn, board);
+    let possibleMoves = await findAllPossibleMoves(currentTurn, board);
 
     if (!possibleMoves.length) {
-      possibleMoves = findAllPossibleMoves(gameState.currentTurn, board);
+      possibleMoves = await findAllPossibleMoves(gameState.currentTurn, board);
       currentTurn = currentTurn === 'black' ? 'white' : 'black';
     }
 

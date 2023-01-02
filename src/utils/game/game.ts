@@ -1,6 +1,6 @@
 import type { GameState, GameBoard, GameCell } from './types';
 
-export function createInitialState() {
+export async function createInitialState() {
   const currentTurn: GameState['currentTurn'] = Math.random() > 0.5 ? 'black' : 'white';
   const playerColor: GameState['playerColor'] = currentTurn === 'black' ? 'white' : 'black';
 
@@ -20,10 +20,10 @@ export function createInitialState() {
     }
   }
 
-  return { board, currentTurn, playerColor, possibleMoves: findAllPossibleMoves(currentTurn, board) };
+  return { board, currentTurn, playerColor, possibleMoves: await findAllPossibleMoves(currentTurn, board) };
 }
 
-export function findAllPossibleMoves(currentTurn: GameState['currentTurn'], board: GameBoard): string[] {
+export async function findAllPossibleMoves(currentTurn: GameState['currentTurn'], board: GameBoard): Promise<string[]> {
   const possibleMoves: string[] = [];
 
   for (const key in board) {
@@ -32,342 +32,87 @@ export function findAllPossibleMoves(currentTurn: GameState['currentTurn'], boar
     if (cell?.occupiedBy) continue;
 
     const { x, y } = JSON.parse(key);
-    let tempX = x;
-    let opponentPreviouslyFound: boolean;
 
-    // Search up-leftwards
-    tempX = x - 1;
-    opponentPreviouslyFound = false;
+    // Search all directions from this location to see if this cell is a possible move for the current player
+    const directionModifiers: [number, number][] = [
+      [-1, -1],
+      [0, -1],
+      [1, -1],
+      [1, 0],
+      [1, 1],
+      [0, 1],
+      [-1, 1],
+      [-1, 0],
+    ];
 
-    for (let yy = y - 1; yy > 0; yy--) {
-      const thisKey = JSON.stringify({ x: tempX, y: yy });
-      const thisCell = board[thisKey];
-      tempX--;
+    const result = await Promise.any(
+      directionModifiers.map(
+        ([xModifier, yModifier]): Promise<boolean> =>
+          new Promise((res, rej) => {
+            if (searchCapturableTokens(board, currentTurn, x, y, xModifier, yModifier).length) res(true);
+            rej(false);
+          }),
+      ),
+    ).catch((error) => {
+      if (!(error instanceof AggregateError)) console.error(error);
+      return false;
+    });
 
-      if (!thisCell?.occupiedBy) break;
-      if (!opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) break;
-
-      if (thisCell.occupiedBy !== currentTurn) {
-        opponentPreviouslyFound = true;
-        continue;
-      }
-      if (opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) {
-        possibleMoves.push(key);
-        break;
-      }
-    }
-
-    if (possibleMoves.includes(key)) continue;
-
-    // Search Upwards
-    opponentPreviouslyFound = false;
-
-    for (let yy = y - 1; yy > 0; yy--) {
-      const thisKey = JSON.stringify({ x, y: yy });
-      const thisCell = board[thisKey];
-
-      if (!thisCell?.occupiedBy) break;
-      if (!opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) break;
-
-      if (thisCell.occupiedBy !== currentTurn) {
-        opponentPreviouslyFound = true;
-        continue;
-      }
-      if (opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) {
-        possibleMoves.push(key);
-        break;
-      }
-    }
-
-    if (possibleMoves.includes(key)) continue;
-
-    // Search up-rightwards
-    tempX = x + 1;
-    opponentPreviouslyFound = false;
-
-    for (let yy = y - 1; yy > 0; yy--) {
-      const thisKey = JSON.stringify({ x: tempX, y: yy });
-      const thisCell = board[thisKey];
-      tempX++;
-
-      if (!thisCell?.occupiedBy) break;
-      if (!opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) break;
-
-      if (thisCell.occupiedBy !== currentTurn) {
-        opponentPreviouslyFound = true;
-        continue;
-      }
-      if (opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) {
-        possibleMoves.push(key);
-        break;
-      }
-    }
-
-    if (possibleMoves.includes(key)) continue;
-
-    // Search Rightwards
-    opponentPreviouslyFound = false;
-
-    for (let xx = x + 1; xx <= 8; xx++) {
-      const thisKey = JSON.stringify({ x: xx, y });
-      const thisCell = board[thisKey];
-
-      if (!thisCell?.occupiedBy) break;
-      if (!opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) break;
-
-      if (thisCell.occupiedBy !== currentTurn) {
-        opponentPreviouslyFound = true;
-        continue;
-      }
-      if (opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) {
-        possibleMoves.push(key);
-        break;
-      }
-    }
-
-    if (possibleMoves.includes(key)) continue;
-
-    // Search down-rightwards
-    tempX = x + 1;
-    opponentPreviouslyFound = false;
-
-    for (let yy = y + 1; yy <= 8; yy++) {
-      const thisKey = JSON.stringify({ x: tempX, y: yy });
-      const thisCell = board[thisKey];
-      tempX++;
-
-      if (!thisCell?.occupiedBy) break;
-      if (!opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) break;
-
-      if (thisCell.occupiedBy !== currentTurn) {
-        opponentPreviouslyFound = true;
-        continue;
-      }
-      if (opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) {
-        possibleMoves.push(key);
-        break;
-      }
-    }
-
-    if (possibleMoves.includes(key)) continue;
-
-    // Search Downwards
-    opponentPreviouslyFound = false;
-
-    for (let yy = y + 1; yy <= 8; yy++) {
-      const thisKey = JSON.stringify({ x, y: yy });
-      const thisCell = board[thisKey];
-
-      if (!thisCell?.occupiedBy) break;
-      if (!opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) break;
-
-      if (thisCell.occupiedBy !== currentTurn) {
-        opponentPreviouslyFound = true;
-        continue;
-      }
-      if (opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) {
-        possibleMoves.push(key);
-        break;
-      }
-    }
-
-    if (possibleMoves.includes(key)) continue;
-
-    // Search down-leftwards
-    tempX = x - 1;
-    opponentPreviouslyFound = false;
-
-    for (let yy = y + 1; yy <= 8; yy++) {
-      const thisKey = JSON.stringify({ x: tempX, y: yy });
-      const thisCell = board[thisKey];
-      tempX--;
-
-      if (!thisCell?.occupiedBy) break;
-      if (!opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) break;
-
-      if (thisCell.occupiedBy !== currentTurn) {
-        opponentPreviouslyFound = true;
-        continue;
-      }
-      if (opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) {
-        possibleMoves.push(key);
-        break;
-      }
-    }
-
-    if (possibleMoves.includes(key)) continue;
-
-    // Search Leftwards
-    opponentPreviouslyFound = false;
-
-    for (let xx = x - 1; xx > 0; xx--) {
-      const thisKey = JSON.stringify({ x: xx, y });
-      const thisCell = board[thisKey];
-
-      if (!thisCell?.occupiedBy) break;
-      if (!opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) break;
-
-      if (thisCell.occupiedBy !== currentTurn) {
-        opponentPreviouslyFound = true;
-        continue;
-      }
-      if (opponentPreviouslyFound && thisCell.occupiedBy === currentTurn) {
-        possibleMoves.push(key);
-        break;
-      }
-    }
-
-    if (possibleMoves.includes(key)) continue;
+    if (result) possibleMoves.push(key);
   }
 
   return possibleMoves;
 }
 
-export function findCapturedTokenKeys(key: string, state: GameState) {
-  const currentTurn = state.currentTurn;
+export async function findCapturedTokenKeys(key: string, state: GameState) {
+  const { currentTurn, board } = state;
   const { x, y } = JSON.parse(key);
-  let tempX = x;
 
-  const capturedTokenKeys: string[] = [];
+  // Search all directions from this location to get the captured tokens by the player's move
+  const directionModifiers: [number, number][] = [
+    [-1, -1],
+    [0, -1],
+    [1, -1],
+    [1, 0],
+    [1, 1],
+    [0, 1],
+    [-1, 1],
+    [-1, 0],
+  ];
 
-  // Search up-leftwards
-  const potentialUpLeftTokens: string[] = [];
-  tempX = x - 1;
+  return (
+    await Promise.all(
+      directionModifiers.map(async ([xModifier, yModifier]) =>
+        searchCapturableTokens(board, currentTurn, x, y, xModifier, yModifier),
+      ),
+    )
+  ).flat();
+}
 
-  for (let yy = y - 1; yy > 0; yy--) {
-    const thisKey = JSON.stringify({ x: tempX, y: yy });
-    const thisCell = state.board[thisKey];
+function searchCapturableTokens(
+  board: GameBoard,
+  currentTurn: GameState['currentTurn'],
+  x: number,
+  y: number,
+  xModifier: number,
+  yModifier: number,
+) {
+  const tokensCaptured: string[] = [];
+  x += xModifier;
+  y += yModifier;
 
-    if (!thisCell?.occupiedBy) break;
+  while (x > 0 && y > 0 && x <= 8 && y <= 8) {
+    const thisKey = JSON.stringify({ x, y });
+    const thisCell = board[thisKey];
 
-    if (thisCell.occupiedBy !== currentTurn) potentialUpLeftTokens.push(thisKey);
-    if (thisCell.occupiedBy === currentTurn) {
-      capturedTokenKeys.push(...potentialUpLeftTokens);
-      break;
-    }
+    if (!thisCell?.occupiedBy || (!tokensCaptured.length && thisCell.occupiedBy === currentTurn)) return [];
+    if (tokensCaptured.length && thisCell.occupiedBy === currentTurn) return tokensCaptured;
 
-    tempX--;
+    if (thisCell.occupiedBy !== currentTurn) tokensCaptured.push(thisKey);
+
+    y += yModifier;
+    x += xModifier;
   }
 
-  // Search Upwards
-  const potentialUpTokens: string[] = [];
-
-  for (let yy = y - 1; yy > 0; yy--) {
-    const thisKey = JSON.stringify({ x, y: yy });
-    const thisCell = state.board[thisKey];
-
-    if (!thisCell?.occupiedBy) break;
-
-    if (thisCell.occupiedBy !== currentTurn) potentialUpTokens.push(thisKey);
-    if (thisCell.occupiedBy === currentTurn) {
-      capturedTokenKeys.push(...potentialUpTokens);
-      break;
-    }
-  }
-
-  // Search up-rightwards
-  const potentialUpRightTokens: string[] = [];
-  tempX = x + 1;
-
-  for (let yy = y - 1; yy > 0; yy--) {
-    const thisKey = JSON.stringify({ x: tempX, y: yy });
-    const thisCell = state.board[thisKey];
-
-    if (!thisCell?.occupiedBy) break;
-
-    if (thisCell.occupiedBy !== currentTurn) potentialUpRightTokens.push(thisKey);
-    if (thisCell.occupiedBy === currentTurn) {
-      capturedTokenKeys.push(...potentialUpRightTokens);
-      break;
-    }
-    tempX++;
-  }
-
-  // Search Rightwards
-  const potentialRightTokens: string[] = [];
-
-  for (let xx = x + 1; xx <= 8; xx++) {
-    const thisKey = JSON.stringify({ x: xx, y });
-    const thisCell = state.board[thisKey];
-
-    if (!thisCell?.occupiedBy) break;
-
-    if (thisCell.occupiedBy !== currentTurn) potentialRightTokens.push(thisKey);
-    if (thisCell.occupiedBy === currentTurn) {
-      capturedTokenKeys.push(...potentialRightTokens);
-      break;
-    }
-  }
-
-  // Search down-rightwards
-  const potentialDownRightTokens: string[] = [];
-  tempX = x + 1;
-
-  for (let yy = y + 1; yy <= 8; yy++) {
-    const thisKey = JSON.stringify({ x: tempX, y: yy });
-    const thisCell = state.board[thisKey];
-
-    if (!thisCell?.occupiedBy) break;
-
-    if (thisCell.occupiedBy !== currentTurn) potentialDownRightTokens.push(thisKey);
-    if (thisCell.occupiedBy === currentTurn) {
-      capturedTokenKeys.push(...potentialDownRightTokens);
-      break;
-    }
-
-    tempX++;
-  }
-
-  // Search Down
-  const potentialDownTokens: string[] = [];
-
-  for (let yy = y + 1; yy <= 8; yy++) {
-    const thisKey = JSON.stringify({ x, y: yy });
-    const thisCell = state.board[thisKey];
-
-    if (!thisCell?.occupiedBy) break;
-
-    if (thisCell.occupiedBy !== currentTurn) potentialDownTokens.push(thisKey);
-    if (thisCell.occupiedBy === currentTurn) {
-      capturedTokenKeys.push(...potentialDownTokens);
-      break;
-    }
-  }
-
-  // Search Down-leftwards
-  const potentialDownLeftTokens: string[] = [];
-  tempX = x - 1;
-
-  for (let yy = y + 1; yy <= 8; yy++) {
-    const thisKey = JSON.stringify({ x: tempX, y: yy });
-    const thisCell = state.board[thisKey];
-
-    if (!thisCell?.occupiedBy) break;
-
-    if (thisCell.occupiedBy !== currentTurn) potentialDownLeftTokens.push(thisKey);
-    if (thisCell.occupiedBy === currentTurn) {
-      capturedTokenKeys.push(...potentialDownLeftTokens);
-      break;
-    }
-
-    tempX--;
-  }
-
-  // Search Leftwards
-  const potentialLeftTokens: string[] = [];
-
-  for (let xx = x - 1; xx > 0; xx--) {
-    const thisKey = JSON.stringify({ x: xx, y });
-    const thisCell = state.board[thisKey];
-
-    if (!thisCell?.occupiedBy) break;
-
-    if (thisCell.occupiedBy !== currentTurn) potentialLeftTokens.push(thisKey);
-    if (thisCell.occupiedBy === currentTurn) {
-      capturedTokenKeys.push(...potentialLeftTokens);
-      break;
-    }
-  }
-
-  return capturedTokenKeys;
+  return [];
 }
