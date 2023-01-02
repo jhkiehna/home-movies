@@ -222,3 +222,58 @@
 .loginButton:hover {
   background-color: rgb(255 255 255 / 0.2);
 }
+
+.othellomain {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.othelloboard {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  gap: 3px;
+  width: 100%;
+  min-width: 200px;
+  min-height: 40vh;
+  max-width: 500px;
+  max-height: 500px;
+  /* min-height: 200px; */
+  border: 3px solid black;
+  border-radius: 0.5rem;
+  background-color: black;
+}
+
+.othelloboardcell {
+  background-color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.position-1-1 {
+  border-top-left-radius: 0.5rem;
+}
+.position-8-1 {
+  border-top-right-radius: 0.5rem;
+}
+.position-1-8 {
+  border-bottom-left-radius: 0.5rem;
+}
+.position-8-8 {
+  border-bottom-right-radius: 0.5rem;
+}
+
+.possibletokenmove:hover {
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.token {
+  width: 90%;
+  height: 90%;
+  border-radius: 50%;
+  border: 2px solid black;
+}
