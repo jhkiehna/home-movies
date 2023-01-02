@@ -12,6 +12,8 @@ const GameBoard: React.FC<{
   gameState: GameState;
   setGameState: React.Dispatch<React.SetStateAction<GameState | null>>;
 }> = ({ gameState, setGameState }) => {
+  const [boardLocked, setBoardLocked] = React.useState(false);
+
   React.useEffect(() => {
     if (gameState.currentTurn !== gameState.playerColor) {
       const randomKey = gameState.possibleMoves[Math.floor(Math.random() * gameState.possibleMoves.length)] as string;
@@ -23,6 +25,7 @@ const GameBoard: React.FC<{
   }, [gameState.currentTurn]);
 
   const setMove = async (key: string) => {
+    setBoardLocked(true);
     const board = { ...gameState.board, [key]: { occupiedBy: gameState.currentTurn } };
 
     setGameState({ ...gameState, board });
@@ -56,10 +59,15 @@ const GameBoard: React.FC<{
       currentTurn,
       possibleMoves,
     });
+    setBoardLocked(false);
   };
 
   const handleClick = (key: string) => {
-    if (gameState.currentTurn === gameState.playerColor && gameState.possibleMoves.includes(key)) setMove(key);
+    if (boardLocked) return;
+    if (gameState.currentTurn !== gameState.playerColor) return;
+    if (!gameState.possibleMoves.includes(key)) return;
+
+    setMove(key);
   };
 
   return (
