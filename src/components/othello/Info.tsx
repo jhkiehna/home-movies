@@ -14,7 +14,7 @@ const Info: React.FC<{ gameState: GameState }> = ({ gameState }) => {
       White: {whiteScore} - Black: {blackScore}
       <br />
       <br />
-      Playing as: {gameState.currentTurn}
+      Playing as: {gameState.playerColor}
     </p>
   );
 };

@@ -11,6 +11,8 @@ const Othello: NextPage = () => {
   const [gameState, setGameState] = React.useState(createInitialState());
   const [hydrated, setHydrated] = React.useState(false);
 
+  console.log(gameState?.possibleMoves);
+
   React.useEffect(() => {
     setHydrated(true);
   }, []);
