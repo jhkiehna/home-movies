@@ -15,6 +15,8 @@ const GameBoard: React.FC<{
   const [boardLocked, setBoardLocked] = React.useState(false);
 
   React.useEffect(() => {
+    if (boardLocked) return;
+
     if (gameState.currentTurn !== gameState.playerColor) {
       const randomKey = gameState.possibleMoves[Math.floor(Math.random() * gameState.possibleMoves.length)] as string;
 
@@ -22,7 +24,7 @@ const GameBoard: React.FC<{
 
       setMove(randomKey);
     }
-  }, [gameState.currentTurn]);
+  }, [gameState, boardLocked]);
 
   const setMove = async (key: string) => {
     setBoardLocked(true);
