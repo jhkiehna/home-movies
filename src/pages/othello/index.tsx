@@ -11,7 +11,7 @@ import Info from '../../components/othello/Info';
 const Othello: NextPage = () => {
   const [gameState, setGameState] = React.useState<GameState | null>(null);
   const [isGameOver, setIsGameOver] = React.useState(false);
-  const [winningPlayer, setWinningPlayer] = React.useState<'White' | 'Black' | null>(null);
+  const [winningPlayer, setWinningPlayer] = React.useState<'White' | 'Black' | 'No One' | null>(null);
   const [blackScore, setBlackScore] = React.useState(0);
   const [whiteScore, setWhiteScore] = React.useState(0);
 
@@ -43,7 +43,7 @@ const Othello: NextPage = () => {
       if (everyCellWhiteOrNull) return setWinningPlayer('White');
       if (everyCellBlackOrNull) return setWinningPlayer('Black');
 
-      setWinningPlayer(whiteScore > blackScore ? 'White' : 'Black');
+      setWinningPlayer(whiteScore === blackScore ? 'No One' : whiteScore > blackScore ? 'White' : 'Black');
     }
   }, [gameState]);
 
