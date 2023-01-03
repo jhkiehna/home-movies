@@ -10,12 +10,34 @@ import Info from '../../components/othello/Info';
 
 const Othello: NextPage = () => {
   const [gameState, setGameState] = React.useState<GameState | null>(null);
+  const [isGameOver, setIsGameOver] = React.useState(false);
+  const [winningPlayer, setWinningPlayer] = React.useState<'white' | 'black' | null>(null);
+
+  const whiteScore = Object.values(gameState?.board ?? {}).filter((cell) => cell.occupiedBy === 'white').length;
+  const blackScore = Object.values(gameState?.board ?? {}).filter((cell) => cell.occupiedBy === 'black').length;
 
   React.useEffect(() => {
+    // Initialize game board
     if (!gameState) {
       createInitialState().then((gameState) => {
         setGameState(gameState);
       });
+      return;
+    }
+
+    const everyCellWhiteOrNull = Object.values(gameState.board).every(
+      (cell) => cell.occupiedBy === 'white' || !cell.occupiedBy,
+    );
+    const everyCellBlackOrNull = Object.values(gameState.board).every(
+      (cell) => cell.occupiedBy === 'black' || !cell.occupiedBy,
+    );
+    // Check end game conditions
+    const boardFilled = Object.values(gameState.board).every((cell) => !!cell.occupiedBy);
+    const noMorePossibleMoves = !gameState.possibleMoves.length && (everyCellBlackOrNull || everyCellWhiteOrNull);
+
+    if (boardFilled || noMorePossibleMoves) {
+      setIsGameOver(true);
+      setWinningPlayer(everyCellWhiteOrNull ? 'white' : 'black');
     }
   }, [gameState]);
 
@@ -30,19 +52,18 @@ const Othello: NextPage = () => {
       <main className={styles.othellomain}>
         <h1>Othello</h1>
 
-        {gameState ? <Info gameState={gameState} /> : null}
+        {gameState && (
+          <Info
+            playerColor={gameState.playerColor}
+            currentTurn={gameState.currentTurn}
+            whiteScore={whiteScore}
+            blackScore={blackScore}
+          />
+        )}
 
-        {gameState ? <GameBoard gameState={gameState} setGameState={setGameState} /> : null}
+        {gameState && <GameBoard gameState={gameState} setGameState={setGameState} />}
 
-        {gameState && Object.values(gameState.board).every((cell) => !!cell.occupiedBy) ? (
-          <p>
-            {Object.values(gameState.board).filter((cell) => cell.occupiedBy === 'white').length >
-            Object.values(gameState.board).filter((cell) => cell.occupiedBy === 'black').length
-              ? 'White'
-              : 'Black'}{' '}
-            Wins!!
-          </p>
-        ) : null}
+        {isGameOver && <p>{winningPlayer} Wins!!</p>}
       </main>
     </>
   );

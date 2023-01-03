@@ -1,12 +1,14 @@
 import type { GameState } from '../../utils/game';
 
-const Info: React.FC<{ gameState: GameState }> = ({ gameState }) => {
-  const whiteScore = Object.values(gameState.board).filter((cell) => cell.occupiedBy === 'white').length;
-  const blackScore = Object.values(gameState.board).filter((cell) => cell.occupiedBy === 'black').length;
-
+const Info: React.FC<{
+  playerColor: GameState['playerColor'];
+  currentTurn: GameState['currentTurn'];
+  whiteScore: number;
+  blackScore: number;
+}> = ({ playerColor, currentTurn, whiteScore, blackScore }) => {
   return (
     <p style={{ textAlign: 'center' }}>
-      Current turn: {gameState.currentTurn}
+      Playing as: {playerColor}
       <br />
       <br />
       Score:
@@ -14,7 +16,7 @@ const Info: React.FC<{ gameState: GameState }> = ({ gameState }) => {
       White: {whiteScore} - Black: {blackScore}
       <br />
       <br />
-      Playing as: {gameState.playerColor}
+      Current turn: {currentTurn}
     </p>
   );
 };
